@@ -1,0 +1,150 @@
+body{
+    font-size: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 20px;
+
+}
+.container{
+    max-width: 800px;
+    margin: auto;
+    
+    
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    box-sizing: border-box;
+
+}
+h1,h2,p{
+    text-align: center;
+
+}
+.table-list {
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: flex-start;
+    gap: 20px;
+    margin: 20px 0;
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 170px;
+}
+.table {
+    width: 150px;
+    height: 150px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    background: #fff;
+    overflow: hidden;
+    box-sizing: border-box;
+    margin: 0;
+}
+.table img {
+    width: 100%;
+    height: 80%;
+    object-fit: cover;
+    border-radius: 5px 5px 0 0;
+    background: #fafafa;
+    display: block;
+}
+.table-name {
+    width: 100%;
+    height: 20%;
+    font-size: 15px;
+    font-weight: bold;
+    text-transform: uppercase;
+    text-align: center;
+    background: rgba(255,255,255,0.9);
+    color: #222;
+    padding: 5px 0 0 0;
+    border-radius: 0 0 5px 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    letter-spacing: 1px;
+}
+.button{
+    position:absolute ;
+    bottom: 5px;
+    left: 5px;
+    background-color: #28a745;
+    color: #ddd;
+    border: none;
+    padding: 5px;
+    cursor: pointer;
+    border-radius: 5px;
+}
+.button.hover{
+    background-color: #218838;
+}
+
+.reservas-container {
+    max-width: 800px;
+    margin: 20px auto;
+    padding: 20px;
+    background: white;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+.reservas-container input {
+    display: block;
+    width: 80%;
+    margin: 10px auto;
+    padding: 8px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.reserveButton {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    margin: 15px auto;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 4px;
+    display: block;
+    width: 50%;
+}
+
+.reserveButton:hover {
+    background-color: #218838;
+}
+
+#reportButton {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 4px;
+    display: inline-block;
+}
+
+#reportButton:hover {
+    background-color: #0069d9;
+}
+
+#reportOutput {
+    margin-top: 15px;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    text-align: left;
+    min-height: 50px;
+    max-width: 90%;
+    margin-left: auto;
+    margin-right: auto;
+}
