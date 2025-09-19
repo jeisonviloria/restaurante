@@ -43,9 +43,23 @@ const menu = {
     ]
 };
 
+// Función para formatear una fecha como YYYY-MM-DD
+function formatDate(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+// Función para obtener la fecha actual en formato YYYY-MM-DD
+function getCurrentDate() {
+    const now = new Date();
+    return formatDate(now);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     // Establecer la fecha de hoy como predeterminada en el formulario
-    const today = new Date().toISOString().split('T')[0];
+    const today = getCurrentDate();
     document.getElementById('reservationDate').value = today;
     document.getElementById('reservationDate').min = today;
     
@@ -53,7 +67,16 @@ document.addEventListener('DOMContentLoaded', () => {
     selectedDate = today;
     
     renderTables();
-    renderMenu();
+    renderMenu(); // Renderizamos el menú inicialmente aunque esté oculto
+    
+    // Configurar el botón de alternar menú
+    const toggleMenuBtn = document.getElementById('toggleMenuBtn');
+    toggleMenuBtn.addEventListener('click', () => {
+        const menuContainer = document.getElementById('menuContainer');
+        menuContainer.classList.toggle('hidden');
+        toggleMenuBtn.classList.toggle('active');
+    });
+    
     document.getElementById('reserveButton').addEventListener('click', reserveTable);
     document.getElementById('reportButton').addEventListener('click', generateReport);
     
@@ -68,13 +91,58 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     
     // Añadir evento para cambiar la fecha de visualización
-    document.getElementById('reservationDate').addEventListener('change', function() {
+    const dateInput = document.getElementById('reservationDate');
+    dateInput.addEventListener('change', function() {
+        console.log('Fecha seleccionada:', this.value); // Para debug
+        selectedDate = this.value;
+        renderTables();
+    });
+    
+    // También actualizar cuando se escriba directamente
+    dateInput.addEventListener('input', function() {
+        console.log('Fecha ingresada:', this.value); // Para debug
         selectedDate = this.value;
         renderTables();
     });
 });
 
+function handleDurationChange() {
+    const durationSelect = document.getElementById('reservationDuration');
+    const customDurationContainer = document.getElementById('customDurationContainer');
+    
+    if (durationSelect.value === 'custom') {
+        customDurationContainer.style.display = 'flex';
+    } else {
+        customDurationContainer.style.display = 'none';
+    }
+}
+
+function validateCustomDuration(input) {
+    const value = parseInt(input.value);
+    if (value > 5) {
+        input.value = 5;
+        alert('El máximo tiempo de reserva es 5 horas');
+    } else if (value < 1) {
+        input.value = 1;
+        alert('El mínimo tiempo de reserva es 1 hora');
+    }
+}
+
+function getDuration() {
+    const durationSelect = document.getElementById('reservationDuration');
+    if (durationSelect.value === 'custom') {
+        return document.getElementById('customDuration').value;
+    }
+    return durationSelect.value;
+}
+
 function renderTables() {
+    // Asegurarse de que la fecha mostrada coincida con la del formulario
+    const currentFormDate = document.getElementById('reservationDate').value;
+    selectedDate = currentFormDate;
+    
+    console.log('Renderizando mesas para fecha:', selectedDate); // Para debug
+    
     const availableTablesDiv = document.getElementById('availableTables');
     const occupiedTablesDiv = document.getElementById('occupiedTables');
     availableTablesDiv.innerHTML = '';
@@ -83,11 +151,19 @@ function renderTables() {
     // Actualizar el indicador de fecha seleccionada
     const selectedDateDisplay = document.getElementById('selectedDateDisplay');
     const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    const formattedSelectedDate = new Date(selectedDate).toLocaleDateString('es-ES', dateOptions);
+    
+    // Crear la fecha usando la zona horaria local
+    const [year, month, day] = selectedDate.split('-');
+    const dateObj = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    const formattedSelectedDate = dateObj.toLocaleDateString('es-ES', dateOptions);
     selectedDateDisplay.textContent = `- ${formattedSelectedDate}`;
     
     // Filtrar reservas para la fecha seleccionada
-    const reservationsForDate = reservations.filter(res => res.rawDate === selectedDate);
+    console.log('Buscando reservas para fecha:', selectedDate); // Para debug
+    const reservationsForDate = reservations.filter(res => {
+        console.log('Comparando con reserva:', res.rawDate); // Para debug
+        return res.rawDate === selectedDate;
+    });
 
     // Mostrar todas las mesas, algunas estarán reservadas según la fecha
     tables.forEach(table => {
@@ -103,8 +179,11 @@ function renderTables() {
             tableDiv.innerHTML = `
                 <img src="img/mesa-reservada.jpg" alt="Mesa ${table.number}">
                 <div class="table-name">Mesa ${table.number} - ${reservation.customerName}</div>
-                <div class="table-time">${reservation.formattedTime}</div>
+                <div class="table-time">${reservation.formattedTime} (${reservation.duration}h)</div>
+                <button class="release-table-btn" data-reservation-id="${reservation.id}">Liberar Mesa</button>
             `;
+            const releaseBtn = tableDiv.querySelector('.release-table-btn');
+            releaseBtn.addEventListener('click', () => releaseTable(reservation.id));
             occupiedTablesDiv.appendChild(tableDiv);
         } else {
             // Mesa disponible para esta fecha
@@ -119,13 +198,25 @@ function renderTables() {
 }
 
 function reserveTable() {
+    console.log('Iniciando reserva...'); // Para debug
+    
     const customerName = document.getElementById('customerName').value.trim();
     const tableNumber = parseInt(document.getElementById('tableNumber').value);
     const reservationDate = document.getElementById('reservationDate').value;
     const reservationTime = document.getElementById('reservationTime').value;
+    const duration = getDuration();
     
-    if (!customerName || isNaN(tableNumber)) {
-        alert('Por favor ingresa el nombre y el número de mesa.');
+    console.log('Fecha de reserva:', reservationDate); // Para debug
+    
+    // Validar el nombre (solo letras y espacios)
+    if (!customerName || !/^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/.test(customerName)) {
+        alert('Por favor ingresa un nombre válido (solo letras y espacios).');
+        return;
+    }
+    
+    // Validar el número de mesa (número entero entre 1 y 12)
+    if (!tableNumber || isNaN(tableNumber) || tableNumber < 1 || tableNumber > 12 || !Number.isInteger(tableNumber)) {
+        alert('Por favor ingresa un número de mesa válido (1-12).');
         return;
     }
     
@@ -140,12 +231,20 @@ function reserveTable() {
     }
     
     // Verificar si la fecha es válida (no pasada)
-    const reservationDateTime = new Date(reservationDate + 'T' + reservationTime);
-    const now = new Date();
-    
-    if (reservationDateTime < now) {
-        alert('Por favor selecciona una fecha y hora futura para tu reserva.');
+    const today = getCurrentDate();
+    if (reservationDate < today) {
+        alert('Por favor selecciona una fecha futura para tu reserva.');
         return;
+    }
+    
+    // Verificar si la hora es válida para hoy
+    if (reservationDate === today) {
+        const now = new Date();
+        const reservationDateTime = new Date(reservationDate + 'T' + reservationTime);
+        if (reservationDateTime < now) {
+            alert('Por favor selecciona una hora futura para tu reserva de hoy.');
+            return;
+        }
     }
     
     // Verificar si la mesa existe
@@ -167,7 +266,9 @@ function reserveTable() {
     
     // Formatear fecha y hora para mostrar
     const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    const formattedDate = new Date(reservationDate).toLocaleDateString('es-ES', dateOptions);
+    const [year, month, day] = reservationDate.split('-');
+    const dateObj = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    const formattedDate = dateObj.toLocaleDateString('es-ES', dateOptions);
     const formattedTime = reservationTime.split(':')[0] >= 12 ? 
                          (reservationTime.split(':')[0] > 12 ? 
                           (reservationTime.split(':')[0] - 12) : reservationTime.split(':')[0]) + ':' + 
@@ -188,13 +289,46 @@ function reserveTable() {
     // Actualizar la visualización de las mesas
     renderTables();
     
-    // Limpiar campos del formulario
+    // Limpiar campos del formulario, pero mantener la fecha
     document.getElementById('customerName').value = '';
     document.getElementById('tableNumber').value = '';
+    document.getElementById('reservationTime').value = '';
+    document.getElementById('reservationDuration').value = '';
+    document.getElementById('customDurationContainer').style.display = 'none';
+    if (document.getElementById('customDuration')) {
+        document.getElementById('customDuration').value = '';
+    }
     
-    // Mantener la fecha seleccionada para que el usuario pueda hacer más reservas en la misma fecha
+    // Asegurarnos de que la fecha de reserva se use para mostrar la disponibilidad
+    selectedDate = reservationDate;
+    renderTables();
+    alert(`¡Reserva exitosa!\nMesa ${tableNumber} reservada para ${customerName}\nFecha: ${formattedDate}\nHora: ${formattedTime}\nDuración: ${duration} horas`);
+}
+
+function releaseTable(reservationId) {
+    // Buscar la reserva
+    const reservationIndex = reservations.findIndex(res => res.id === reservationId);
     
-    alert(`¡Reserva exitosa!\nMesa ${tableNumber} reservada para ${customerName}\nFecha: ${formattedDate}\nHora: ${formattedTime}`);
+    if (reservationIndex === -1) {
+        alert('No se encontró la reserva.');
+        return;
+    }
+    
+    const reservation = reservations[reservationIndex];
+    
+    // Confirmar antes de liberar
+    const confirmMessage = `¿Estás seguro que deseas liberar la Mesa ${reservation.tableNumber}?\n` +
+                         `Reservada por: ${reservation.customerName}\n` +
+                         `Fecha: ${reservation.formattedDate}\n` +
+                         `Hora: ${reservation.formattedTime}`;
+    
+    if (confirm(confirmMessage)) {
+        // Eliminar la reserva
+        reservations.splice(reservationIndex, 1);
+        // Actualizar la visualización
+        renderTables();
+        alert(`Mesa ${reservation.tableNumber} liberada exitosamente.`);
+    }
 }
 
 function generateReport() {
@@ -227,7 +361,7 @@ function generateReport() {
             const formattedDate = dateReservations[0].formattedDate;
             
             const reservationsText = dateReservations.map(res => 
-                `   Mesa ${res.tableNumber}: ${res.customerName} - ${res.formattedTime}`
+                `   Mesa ${res.tableNumber}: ${res.customerName} - ${res.formattedTime} (${res.duration}h)`
             ).join('\n');
             
             reportParts.push(`FECHA: ${formattedDate}\n${reservationsText}`);
